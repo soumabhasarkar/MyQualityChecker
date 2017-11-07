@@ -1,0 +1,94 @@
+// CreateBranchController
+
+using QualityChecker.Common.Payload.Events;
+using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Web.Http;
+using WebApi.Models;
+
+namespace WebApi.Controllers
+{
+    public class CreateBranchController : ApiController
+    {
+        [HttpPost]
+        [Route("api/events/create")]
+        public BranchInfo GetbranchInfo([FromBody] CreateEvent payload)
+        {
+            BranchInfo branchInfo = new BranchInfo();
+
+            int NumberOfBrachNameField = 0;
+            char deliminator = ' ';
+            string DefectPrefix = null;
+            string DefectIdPatternNoQC = null;
+            try
+            {
+                deliminator = char.Parse(ConfigurationManager.AppSettings["BrachNameDeliminator"]);
+                NumberOfBrachNameField = int.Parse(ConfigurationManager.AppSettings["NumberOfBrachNameField"]);
+                DefectPrefix = ConfigurationManager.AppSettings["DefectPrefix"];
+                DefectIdPatternNoQC = ConfigurationManager.AppSettings["DefectIdPatternNoQC"];
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
+            string _branchInfo = payload.Reference;
+
+            // No Jira Id is provided
+            if (!_branchInfo.Contains(deliminator))
+            {
+                branchInfo.GenericDescription = _branchInfo;
+                branchInfo.NoJiraStory = true;
+            }
+            else
+            {
+                string[] branchInfoSplits = _branchInfo.Split(deliminator);
+                if (branchInfoSplits.Length != NumberOfBrachNameField)
+                {
+                    branchInfo.Info.Add(String.Format("Branch Name does not meet the standard"));
+                }
+                else
+                {
+                    string JiraId = branchInfoSplits[0];
+                    branchInfo.JiraId = JiraId;
+                    string DefectDetails = branchInfoSplits[1];
+
+                    if (!String.IsNullOrEmpty(DefectDetails))
+                    {
+                        // Validate if it contains DefectId or Description
+                        if (DefectDetails.Contains(DefectPrefix))
+                        {
+                            if (!DefectDetails.Contains(DefectIdPatternNoQC))
+                            {
+                                branchInfo.DefectId = DefectDetails;
+                            }
+                            else
+                            {
+                                branchInfo.NoDefectInQC = true;
+                                branchInfo.GenericDefectDescription = DefectDetails;
+                            }
+                        }
+                        else
+                        {
+                            branchInfo.NoDefectInQC = true;
+                            branchInfo.GenericDefectDescription = DefectDetails;
+                        }
+                    }
+                }
+            }
+            return branchInfo;
+        }
+    }
+}
+
+
+// Web.config
+
+<add key="BrachNameDeliminator" value="_"/>
+    <add key="NumberOfBrachNameField" value="2"/>
+    <add key="DefectPrefix" value="DF-" />
+    <add key="DefectIdPatternNoQC" value="XXXXX" />

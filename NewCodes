@@ -92,3 +92,91 @@ namespace WebApi.Controllers
     <add key="NumberOfBrachNameField" value="2"/>
     <add key="DefectPrefix" value="DF-" />
     <add key="DefectIdPatternNoQC" value="XXXXX" />
+    
+    
+/////////////////////////////////////////////////////////////////////////////////
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Atlassian;
+using Atlassian.Jira;
+using RestSharp;
+using System.Net.Http;
+using RestSharp.Authenticators;
+
+namespace TestJiraAPI
+{
+    class Program
+    {
+        
+        static void Main(string[] args)
+        {
+            //Jira inner_client = Jira.CreateRestClient("https://soumabhatestjira.atlassian.net/","soumabhasarkar@gmail.com","Password1$");
+            //RestRequest restRequest = new RestRequest("/rest/api/2/issue/{id}",Method.GET);
+            //restRequest.AddUrlSegment("id", "JIR-5");
+            //var response = inner_client.RestClient.ExecuteRequestAsync(restRequest);
+
+            //Console.WriteLine(response);
+
+            //GetRequest(); 
+
+            // GetRequestRestSharp(args[0],args[1],args[2],args[3]);
+
+            GetRequestRestSharp("https://soumabhatestjira.atlassian.net", "soumabhasarkar@gmail.com", "Password1$", "JIR-10");
+
+            Console.Read();
+        }
+
+        private static void GetRequestRestSharp(string uri, string username, string password, string jiraid)
+        {
+            var client = new RestClient();
+            client.BaseUrl = new Uri(uri);
+
+            client.Authenticator = new HttpBasicAuthenticator(username, password);
+
+            var request = new RestRequest("rest/api/2/issue/JIR-10/transitions", Method.POST);
+            request.AddHeader("Content-type", "application/json");
+            //var request = new RestRequest("rest/api/2/issue/JIR-10/editmeta", Method.GET);
+            //var request = new RestRequest("rest/api/2/issue/JIR-10/transitions", Method.GET);
+            request.AddJsonBody(new {
+                transition = new { id = 11}
+            });
+            // request.Resource = @"C:\Users\ssarkar110217\Documents\Visual Studio 2015\Projects\TestJiraAPI\TestJiraAPI\Resources\UpdateStatus.json";           
+            // request.AddUrlSegment("jiraid", jiraid);
+
+
+            IRestResponse response = client.Execute(request);
+            var content = response.Content;
+
+            Console.WriteLine("Done");
+        }
+
+        private static async void GetRequest()
+        {
+            HttpClientHandler httpClientHandler = new HttpClientHandler()
+            {
+                UseDefaultCredentials = true
+            };
+            HttpClient client = new HttpClient(httpClientHandler);
+
+            client.BaseAddress = new Uri("https://soumabhatestjira.atlassian.net/");
+
+            byte[] cred = UTF8Encoding.UTF8.GetBytes("soumabhasarkar@gmail.com:Password1$");
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(cred));
+            client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+
+            HttpResponseMessage response = await client.GetAsync("rest/api/2/issue/JIR");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine(content);
+            }                 
+        }
+    }
+}
+
+    
